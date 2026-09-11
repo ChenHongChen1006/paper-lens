@@ -6,6 +6,10 @@
 
 純前端網站（React + Vite + JavaScript），沒有後端伺服器，資料全部存在瀏覽器的 IndexedDB。Claude API key 只存在你自己的瀏覽器裡，由你自己輸入，直接從瀏覽器呼叫 Claude API。
 
+## 線上使用
+
+PaperLens： https://chenhongchen1006.github.io/paper-lens/
+
 ## 功能
 
 - 上傳單篇或多篇 PDF，在瀏覽器內用 [pdf.js](https://mozilla.github.io/pdf.js/) 逐頁擷取文字並保留頁碼
@@ -58,7 +62,7 @@ npm run dev
 
 1. 在 GitHub repository 設定裡，把 Pages 的來源設為 "GitHub Actions"
 2. push 到 `main` 分支，等待 Actions 跑完
-3. 網站會部署在 `https://<你的 GitHub 帳號>.github.io/<repository 名稱>/`
+3. 網站會部署在 https://chenhongchen1006.github.io/paper-lens/
 
 `vite.config.js` 使用 `base: './'`（相對路徑），所以不需要在程式裡寫死使用者名稱或 repo 名稱，部署在網域根目錄或子路徑都可以正常載入資源。路由使用 `HashRouter`，避免 GitHub Pages 的 SPA 404 問題。
 
