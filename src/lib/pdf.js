@@ -9,14 +9,53 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { buildParagraphsFromLines, buildSegments } from './text.js';
 
+// `?url` makes Vite treat the worker as a build asset: it gets copied into
+// dist/assets/ with a content hash and this import resolves to that final
+// URL, wherever the app is actually deployed. Vite compiles the resulting
+// reference to `new URL("pdf.worker.min-<hash>.mjs", import.meta.url).href`
+// — resolved against THIS MODULE's own URL (i.e. wherever
+// assets/index-<hash>.js itself was loaded from), not against
+// `window.location` or any hardcoded path. That makes it correct
+// regardless of GitHub username, repo name, or subpath — do not replace
+// this with a hand-built path like `/assets/pdf.worker...` or anything
+// derived from `window.location.origin` alone (the GitHub Pages URL has a
+// `/<repo>/` prefix that a plain origin-based path would silently drop).
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 // Standard fonts / CMaps are copied into public/ (see README) so pdf.js
 // can render pages whose fonts aren't embedded, and CJK text, correctly —
 // without this, rendering (used for OCR page images and metadata) falls
-// back to generic glyph shapes.
+// back to generic glyph shapes. `document.baseURI` (not
+// `window.location.origin`) is what makes this correct under a GitHub
+// Pages subpath too — it already includes the `/<repo>/` prefix, and a
+// relative URL resolved against it behaves the same way
+// `import.meta.env.BASE_URL` would, since this project's `base: './'`
+// means both ultimately resolve relative to the deployed page's own URL.
 function assetUrl(relativePath) {
   return new URL(relativePath, document.baseURI).href;
+}
+
+// A pdf.js worker failing to load (or its own same-thread fallback also
+// failing) surfaces as an opaque internal message like `Setting up fake
+// worker failed: "Failed to fetch dynamically imported module: ..."`.
+// That's accurate but not actionable for a user with no way to know what
+// a "worker" is — this recognizes that failure class specifically (by
+// pdf.js's own consistent wording, not by guessing at a root cause) and
+// gives guidance that helps for the two realistic causes: a momentary
+// network/CDN hiccup (retry) or a privacy/ad-blocking browser extension
+// blocking the request (the actual server-side asset and MIME type were
+// directly verified correct against the live deployment — see CLAUDE.md).
+// Any other extractPdfText() failure (a corrupt/encrypted PDF, etc.)
+// passes through unchanged.
+export function translatePdfError(err) {
+  const msg = err?.message || String(err);
+  if (/fake worker|dynamically imported module/i.test(msg)) {
+    return (
+      'PDF 解析元件載入失敗，可能是暫時的網路問題，或瀏覽器的隱私／廣告阻擋擴充功能封鎖了這個請求。' +
+      '請重新整理頁面後再試一次；如果持續發生，可以嘗試暫時停用相關擴充功能，或換一個瀏覽器測試。'
+    );
+  }
+  return msg;
 }
 
 export async function loadPdfDocument(blob) {

@@ -2,7 +2,7 @@
 // `papers` record: extract text, detect scanned PDFs, detect references,
 // and persist everything. Thin glue between pdf.js, text.js and storage.js.
 
-import { extractPdfText } from './pdf.js';
+import { extractPdfText, translatePdfError } from './pdf.js';
 import { detectScannedPdf, detectReferences } from './text.js';
 import { createPaper, updatePaper } from './storage.js';
 
@@ -39,7 +39,7 @@ export async function ingestPdfFile(file, { onProgress } = {}) {
   } catch (err) {
     await updatePaper(paper.id, {
       extractionStatus: 'error',
-      extractionError: err?.message || String(err),
+      extractionError: translatePdfError(err),
     });
   }
 

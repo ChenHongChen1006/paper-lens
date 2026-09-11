@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScanText, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Card, Button, ErrorAlert } from './ui.jsx';
-import { renderPageToImage } from '../lib/pdf.js';
+import { renderPageToImage, translatePdfError } from '../lib/pdf.js';
 import { runOcrPage, resolveModelId } from '../lib/api.js';
 import { paragraphsFromPlainText, buildSegments, detectReferences } from '../lib/text.js';
 import { updatePaper, logUsage } from '../lib/storage.js';
@@ -25,8 +25,13 @@ export function OcrPanel({ paper, settings, onUpdated }) {
       setPageResults((prev) => ({ ...prev, [pageNumber]: { status: 'done', text } }));
       return { pageNumber, text };
     } catch (err) {
-      setPageResults((prev) => ({ ...prev, [pageNumber]: { status: 'failed', error: err.message || String(err) } }));
-      return { pageNumber, error: err.message || String(err) };
+      // translatePdfError() only rewrites the pdf.js worker-loading
+      // failure class (see pdf.js) — a Claude API error from runOcrPage()
+      // passes through it unchanged, so it's safe to apply here even
+      // though this one catch handles both possible error sources.
+      const message = translatePdfError(err);
+      setPageResults((prev) => ({ ...prev, [pageNumber]: { status: 'failed', error: message } }));
+      return { pageNumber, error: message };
     }
   }
 
