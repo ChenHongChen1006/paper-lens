@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+*.local
+npm-debug.log*
+
+# Never commit local secrets — this project has no .env files today, but
+# Vite reads them by convention if one is ever added (e.g. for a local
+# override), so this is excluded proactively rather than after the fact.
+.env
+.env.*
